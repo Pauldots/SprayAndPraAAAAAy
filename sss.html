@@ -1,0 +1,469 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ball Shooter Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+        canvas {
+            display: block;
+        }
+        #colorDropdowns {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #eee;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+        }
+        #highestScoreDisplay {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            font-size: 16px;
+            color: #777;
+        }
+        #timerDisplay {
+            position: absolute;
+            top: 70px;
+            right: 10px;
+            font-size: 16px;
+            color: #777;
+        }
+        .button {
+            position: absolute;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #godModeButton {
+            top: 100px;
+            right: 10px;
+        }
+        #increaseSpeedButton {
+            top: 130px;
+            right: 10px;
+        }
+        #decreaseSpeedButton {
+            top: 160px;
+            right: 10px;
+        }
+        #toggleBiggerBallsButton {
+            top: 190px;
+            right: 10px;
+        }
+        #absorbButton {
+            top: 220px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="scoreDisplay">Score: 0</div>
+<div id="highestScoreDisplay"></div>
+<div id="timerDisplay">Time: 0s</div>
+<div id="colorDropdowns">
+    <h3>Color Settings</h3>
+    <label for="playerColorSelect">Player Color:</label>
+    <select id="playerColorSelect">
+        <option value="#0000ff">Blue</option>
+        <option value="#ff0000">Red</option>
+        <option value="#00ff00">Green</option>
+        <option value="#ffff00">Yellow</option>
+        <option value="#800080">Purple</option>
+        <option value="#ffa500">Orange</option>
+        <option value="#008080">Teal</option>
+        <option value="#ff00ff">Magenta</option>
+        <option value="#00ffff">Cyan</option>
+        <option value="#800000">Maroon</option>
+        <option value="#808080">Gray</option>
+        <option value="#008000">Dark Green</option>
+    </select><br><br>
+    <label for="bulletColorSelect">Bullet Color:</label>
+    <select id="bulletColorSelect">
+        <option value="#000000">Black</option>
+        <option value="#ff0000">Red</option>
+        <option value="#00ff00">Green</option>
+        <option value="#ffff00">Yellow</option>
+        <option value="#800080">Purple</option>
+        <option value="#ffa500">Orange</option>
+        <option value="#008080">Teal</option>
+        <option value="#ff00ff">Magenta</option>
+        <option value="#00ffff">Cyan</option>
+        <option value="#800000">Maroon</option>
+        <option value="#808080">Gray</option>
+        <option value="#008000">Dark Green</option>
+    </select><br><br>
+    <label for="modesDropdown">Modes:</label>
+    <select id="modesDropdown">
+        <option value="normal">Normal</option>
+        <option value="crazy">CRaaazY Mode</option>
+        <option value="hyper">Hyper Mode</option>
+        <option value="shotgun">Shotgun Mode</option> <!-- Added Shotgun Mode -->
+        <option value="superstar">Super Star Mode</option> <!-- Added Super Star Mode -->
+        <option value="chain">Chain Mode</option> <!-- Added Chain Mode -->
+    </select><br><br>
+    <label for="shootSpeedSelect">Shooting Speed:</label>
+    <select id="shootSpeedSelect">
+        <option value="5">Normal</option>
+        <option value="10">Fast</option>
+        <option value="20">Very Fast</option>
+    </select><br><br>
+    <label for="bulletSizeSelect">Bullet Size:</label>
+    <select id="bulletSizeSelect">
+        <option value="3">Small</option>
+        <option value="5">Normal</option>
+        <option value="8">Large</option>
+    </select>
+</div>
+<button id="godModeButton" class="button" onclick="toggleGodMode()">God Mode: Off</button>
+<button id="increaseSpeedButton" class="button" onclick="increaseSpeed()">Increase Speed</button>
+<button id="decreaseSpeedButton" class="button" onclick="decreaseSpeed()">Decrease Speed</button>
+<button id="toggleBiggerBallsButton" class="button" onclick="toggleBiggerBalls()">Toggle Bigger Balls</button>
+<button id="absorbButton" class="button" onclick="toggleAbsorbMode()">Absorb</button>
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const player = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        radius: 10,
+        speed: 5,
+        color: "#0000ff",
+        isGodMode: false,
+        hasBiggerBalls: false,
+        isCrazyMode: false, // Add crazy mode flag
+        isHyperMode: false, // Add hyper mode flag
+        isSuperStarMode: false, // Add super star mode flag
+        isAbsorbMode: false, // Add absorb mode flag
+        canShoot: true, // Add can shoot flag
+    };
+
+    let bullets = [];
+    let redObstacles = [];
+    let isMoving = {
+        up: false,
+        down: false,
+        left: false,
+        right: false,
+    };
+
+    let score = 0;
+    let highestScore = 0;
+    let timeElapsed = 0;
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const highestScoreDisplay = document.getElementById("highestScoreDisplay");
+    const timerDisplay = document.getElementById("timerDisplay");
+    let spawnInterval = 1000; // Initial spawn interval in milliseconds
+    let spawnTimer = 0;
+    let difficultyIncreaseInterval = 30000; // Increase difficulty every 30 seconds
+
+    function drawPlayer() {
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fillStyle = player.color;
+        if (player.isCrazyMode) { // Flash colors if in Crazy Mode
+            ctx.fillStyle = getRandomColor();
+        }
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function drawBullet(bullet) {
+        ctx.beginPath();
+        ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
+        ctx.fillStyle = bullet.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function drawRedObstacle(obstacle) {
+        ctx.beginPath();
+        if (obstacle.shape === "circle") {
+            ctx.arc(obstacle.x, obstacle.y, obstacle.radius, 0, Math.PI * 2);
+        } else if (obstacle.shape === "square") {
+            ctx.rect(obstacle.x - obstacle.size / 2, obstacle.y - obstacle.size / 2, obstacle.size, obstacle.size);
+        } else if (obstacle.shape === "triangle") {
+            ctx.moveTo(obstacle.x, obstacle.y - obstacle.size / 2);
+            ctx.lineTo(obstacle.x + obstacle.size / 2, obstacle.y + obstacle.size / 2);
+            ctx.lineTo(obstacle.x - obstacle.size / 2, obstacle.y + obstacle.size / 2);
+            ctx.closePath();
+        } else if (obstacle.shape === "pentagon") {
+            ctx.moveTo(obstacle.x, obstacle.y - obstacle.size / 2);
+            for (let i = 1; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 10;
+                ctx.lineTo(obstacle.x + Math.sin(angle) * obstacle.size / 2, obstacle.y - Math.cos(angle) * obstacle.size / 2);
+            }
+            ctx.closePath();
+        }
+        ctx.fillStyle = obstacle.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function movePlayer() {
+        if (isMoving.up && player.y - player.speed > 0) {
+            player.y -= player.speed;
+        }
+        if (isMoving.down && player.y + player.speed < canvas.height) {
+            player.y += player.speed;
+        }
+        if (isMoving.left && player.x - player.speed > 0) {
+            player.x -= player.speed;
+        }
+        if (isMoving.right && player.x + player.speed < canvas.width) {
+            player.x += player.speed;
+        }
+    }
+
+    function moveBullets() {
+        bullets.forEach(bullet => {
+            bullet.x += bullet.speedX;
+            bullet.y += bullet.speedY;
+        });
+    }
+
+    function moveRedObstacles() {
+        const enemySpeed = player.isHyperMode ? 3 : 1; // Adjust enemy speed for Hyper Mode
+        redObstacles.forEach(obstacle => {
+            const deltaX = player.x - obstacle.x;
+            const deltaY = player.y - obstacle.y;
+            const angle = Math.atan2(deltaY, deltaX);
+            obstacle.x += Math.cos(angle) * enemySpeed; // Multiply speed for Hyper Mode
+            obstacle.y += Math.sin(angle) * enemySpeed; // Multiply speed for Hyper Mode
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawPlayer();
+        bullets.forEach(drawBullet);
+        redObstacles.forEach(drawRedObstacle);
+    }
+
+    function update() {
+        movePlayer();
+        moveBullets();
+        moveRedObstacles();
+        draw();
+        checkCollision();
+        spawnTimer += 1000 / 60; // Increase timer by 1 second
+        if (spawnTimer >= spawnInterval) {
+            spawnRedObstacles(1);
+            spawnTimer = 0;
+        }
+        updateTimeElapsed();
+    }
+
+    function updateTimeElapsed() {
+        timeElapsed++;
+        timerDisplay.innerText = `Time: ${timeElapsed}s`;
+    }
+
+    function shoot() {
+        const shootingSpeed = parseInt(document.getElementById("shootSpeedSelect").value);
+        const bulletSize = parseInt(document.getElementById("bulletSizeSelect").value);
+        if (player.isSuperStarMode) { // Shoot bullets in a star shape if Super Star Mode is active
+            const numBullets = 10;
+            const angleIncrement = (Math.PI * 2) / numBullets;
+            const baseSpeed = player.isCrazyMode ? 25 : shootingSpeed; // Adjust shooting speed
+            const bulletColor = document.getElementById("bulletColorSelect").value;
+            for (let i = 0; i < numBullets; i++) {
+                const angle = angleIncrement * i;
+                const speedX = Math.cos(angle) * baseSpeed;
+                const speedY = Math.sin(angle) * baseSpeed;
+                bullets.push({x: player.x, y: player.y, speedX, speedY, color: bulletColor, size: bulletSize});
+            }
+        } else { // Normal shooting behavior
+            const angle = Math.atan2(event.clientY - player.y, event.clientX - player.x);
+            const speedX = Math.cos(angle) * (player.isCrazyMode ? 25 : shootingSpeed); // Adjust shooting speed
+            const speedY = Math.sin(angle) * (player.isCrazyMode ? 25 : shootingSpeed); // Adjust shooting speed
+            bullets.push({x: player.x, y: player.y, speedX, speedY, color: document.getElementById("bulletColorSelect").value, size: bulletSize});
+            // Shoot second bullet in Shotgun Mode
+            if (player.isShotgunMode) {
+                const angleOffset = Math.PI / 6; // Offset angle for second bullet
+                const speedX2 = Math.cos(angle + angleOffset) * (player.isCrazyMode ? 25 : shootingSpeed); // Adjust shooting speed
+                const speedY2 = Math.sin(angle + angleOffset) * (player.isCrazyMode ? 25 : shootingSpeed); // Adjust shooting speed
+                bullets.push({x: player.x, y: player.y, speedX: speedX2, speedY: speedY2, color: document.getElementById("bulletColorSelect").value, size: bulletSize});
+            }
+        }
+    }
+
+    function toggleGodMode() {
+        player.isGodMode = !player.isGodMode;
+        const godModeButton = document.getElementById("godModeButton");
+        godModeButton.innerText = player.isGodMode ? "God Mode: On" : "God Mode: Off";
+    }
+
+    function increaseSpeed() {
+        player.speed += 1;
+    }
+
+    function decreaseSpeed() {
+        if (player.speed > 1) {
+            player.speed -= 1;
+        }
+    }
+
+    function toggleBiggerBalls() {
+        player.hasBiggerBalls = !player.hasBiggerBalls;
+        const toggleBiggerBallsButton = document.getElementById("toggleBiggerBallsButton");
+        toggleBiggerBallsButton.innerText = player.hasBiggerBalls ? "Bigger Balls: On" : "Bigger Balls: Off";
+    }
+
+    function toggleAbsorbMode() {
+        player.isAbsorbMode = !player.isAbsorbMode;
+        player.canShoot = !player.isAbsorbMode; // Toggle shooting
+    }
+
+    function checkCollision() {
+        redObstacles.forEach((obstacle, obstacleIndex) => {
+            bullets.forEach((bullet, bulletIndex) => {
+                const distance = Math.sqrt((bullet.x - obstacle.x) ** 2 + (bullet.y - obstacle.y) ** 2);
+                if (distance < bullet.size + obstacle.size) {
+                    bullets.splice(bulletIndex, 1);
+                    if (document.getElementById("modesDropdown").value === "chain") {
+                        redObstacles.splice(0, redObstacles.length);
+                        score += redObstacles.length + 1;
+                    } else {
+                        redObstacles.splice(obstacleIndex, 1);
+                        score++;
+                    }
+                    scoreDisplay.innerText = `Score: ${score}`;
+                    if (player.isAbsorbMode) { // Absorb Mode logic
+                        player.radius += 1; // Increase player's radius
+                    }
+                    spawnRedObstacles(1);
+                    if (score > highestScore) {
+                        highestScore = score;
+                        highestScoreDisplay.innerText = `Highest Score: ${highestScore}`;
+                    }
+                }
+            });
+            // Skip collision detection between player and red obstacles if god mode is active
+            if (!player.isGodMode) {
+                const distance = Math.sqrt((player.x - obstacle.x) ** 2 + (player.y - obstacle.y) ** 2);
+                if (distance < player.radius + obstacle.size) {
+                    if (score > highestScore) {
+                        highestScore = score;
+                        highestScoreDisplay.innerText = `Highest Score: ${highestScore}`;
+                    }
+                    resetGame();
+                }
+            }
+        });
+    }
+
+    function spawnRedObstacles(numObstacles) {
+        for (let i = 0; i < numObstacles; i++) {
+            const color = getRandomColor();
+            const radius = player.hasBiggerBalls ? 25 : 15;
+            const shape = Math.random() < 0.5 ? "circle" : (Math.random() < 0.5 ? "square" : (Math.random() < 0.5 ? "triangle" : "pentagon")); // Randomly choose between shapes
+            let size;
+            if (shape === "circle") {
+                size = radius;
+            } else if (shape === "square") {
+                size = Math.random() * (2 * radius) + 5; // Random size for square
+            } else if (shape === "triangle" || shape === "pentagon") {
+                size = Math.random() * (2 * radius) + 10; // Random size for triangle and pentagon
+            }
+            redObstacles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: radius,
+                color: color,
+                shape: shape,
+                size: size
+            });
+        }
+        // Increase spawn interval and difficulty every 30 seconds
+        if (spawnInterval > 500 && spawnTimer >= difficultyIncreaseInterval) {
+            spawnInterval -= 100;
+            spawnTimer = 0;
+        }
+    }
+
+    function resetGame() {
+        bullets = [];
+        redObstacles = [];
+        spawnInterval = 1000; // Reset spawn interval
+        spawnTimer = 0; // Reset spawn timer
+        player.x = canvas.width / 2;
+        player.y = canvas.height / 2;
+        player.radius = 10; // Reset player's radius
+        score = 0;
+        scoreDisplay.innerText = `Score: ${score}`;
+        timeElapsed = 0;
+        timerDisplay.innerText = `Time: ${timeElapsed}s`;
+    }
+
+    function getRandomColor() {
+        const colors = ["#ff0000", "#00ff00", "#ffff00", "#800080", "#ffa500", "#008080", "#ff00ff", "#00ffff", "#800000", "#808080", "#008000"];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    canvas.addEventListener("mousemove", shoot);
+    canvas.addEventListener("mousedown", () => {
+        if (player.canShoot) {
+            shoot();
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "w" || event.key === "W") {
+            isMoving.up = true;
+        } else if (event.key === "s" || event.key === "S") {
+            isMoving.down = true;
+        } else if (event.key === "a" || event.key === "A") {
+            isMoving.left = true;
+        } else if (event.key === "d" || event.key === "D") {
+            isMoving.right = true;
+        }
+    });
+
+    document.addEventListener("keyup", event => {
+        if (event.key === "w" || event.key === "W") {
+            isMoving.up = false;
+        } else if (event.key === "s" || event.key === "S") {
+            isMoving.down = false;
+        } else if (event.key === "a" || event.key === "A") {
+            isMoving.left = false;
+        } else if (event.key === "d" || event.key === "D") {
+            isMoving.right = false;
+        }
+    });
+
+    document.getElementById("playerColorSelect").addEventListener("change", () => {
+        player.color = document.getElementById("playerColorSelect").value;
+    });
+
+    document.getElementById("bulletColorSelect").addEventListener("change", () => {
+        const newColor = document.getElementById("bulletColorSelect").value;
+        bullets.forEach(bullet => {
+            bullet.color = newColor;
+        });
+    });
+
+    document.getElementById("modesDropdown").addEventListener("change", () => {
+        const selectedMode = document.getElementById("modesDropdown").value;
+        player.isCrazyMode = selectedMode === "crazy";
+        player.isHyperMode = selectedMode === "hyper"; // Set Hyper Mode flag
+        player.isShotgunMode = selectedMode === "shotgun"; // Set Shotgun Mode flag
+        player.isSuperStarMode = selectedMode === "superstar"; // Set Super Star Mode flag
+    });
+
+    setInterval(update, 1000 / 60);
+</script>
+</body>
+</html>
