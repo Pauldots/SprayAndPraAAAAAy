@@ -1,8 +1,64 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SprayAndPraAAAAAy</title>
+    <title>Loading Screen</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        .loading-container {
+            text-align: center;
+        }
+        .loading-text {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .game-container {
+            display: none; /* Initially hide the game content */
+        }
+        .game-placeholder {
+            border: 2px dashed #3498db;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="loading-container">
+    <div class="loading-text">Loading Spray And PraAAAAAy (but better)...</div>
+    <div class="spinner"></div>
+</div>
+<div class="game-container" id="gameContainer">
+    <div class="game-placeholder">
+        <!-- Paste your game content here -->
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ball Shooter Game</title>
     <style>
         body {
             margin: 0;
@@ -464,6 +520,21 @@
     });
 
     setInterval(update, 1000 / 60);
+</script>
+</body>
+</html>
+
+    </div>
+</div>
+<script>
+    // Simulate loading process
+    setTimeout(() => {
+        document.querySelector('.loading-container').style.display = 'none';
+        document.querySelector('.game-container').style.display = 'block';
+    }, 3000); // Adjust the time as needed
+
+    // Your game script goes here
+    // ...
 </script>
 </body>
 </html>
